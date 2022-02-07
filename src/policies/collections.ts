@@ -25,6 +25,7 @@ import {
   decodeVariableLengthMessage,
   encodeVariableLengthMessage,
   fromHexString,
+  numberToBytes,
   split,
   toBytes,
   zip,
@@ -105,7 +106,8 @@ export class TreasureMap implements Versioned {
     ursulas: Ursula[],
     verifiedKFrags: VerifiedKeyFrag[],
     threshold: number,
-    policyEncryptingKey: PublicKey
+    policyEncryptingKey: PublicKey,
+    expiration: Date
   ): Promise<TreasureMap> {
     if (threshold < 1 || threshold > 255) {
       throw Error('The threshold must be between 1 and 255.');
@@ -122,7 +124,8 @@ export class TreasureMap implements Versioned {
       ursulas,
       verifiedKFrags,
       hrac,
-      publisher
+      publisher,
+      expiration
     );
     return new TreasureMap(
       threshold,
@@ -182,14 +185,16 @@ export class TreasureMap implements Versioned {
     ursulas: Ursula[],
     verifiedKFrags: VerifiedKeyFrag[],
     hrac: HRAC,
-    publisher: Alice
+    publisher: Alice,
+    expiration: Date
   ): KFragDestinations {
     const destinations: KFragDestinations = {};
     zip(ursulas, verifiedKFrags).forEach(([ursula, verifiedKFrag]) => {
       const kFragPayload = AuthorizedKeyFrag.constructByPublisher(
         publisher.signer,
         hrac,
-        verifiedKFrag
+        verifiedKFrag,
+        expiration
       );
       const ursulaEncryptingKey = PublicKey.fromBytes(
         fromHexString(ursula.encryptingKey)
@@ -262,23 +267,34 @@ export class TreasureMap implements Versioned {
 export class AuthorizedKeyFrag implements Versioned {
   private static readonly BRAND = 'AKFr';
   private static readonly VERSION: VersionTuple = [1, 0];
+  private static readonly EXPIRATION_SIZE_BYTES = 4;
 
   constructor(
     private readonly hrac: HRAC,
     private readonly signature: Signature,
-    private readonly kFrag: KeyFrag
+    private readonly kFrag: KeyFrag,
+    private readonly expiration: number
   ) {}
 
   public static constructByPublisher(
     publisherSigner: Signer,
     hrac: HRAC,
-    verifiedKFrag: VerifiedKeyFrag
+    verifiedKFrag: VerifiedKeyFrag,
+    expiration: Date
   ): AuthorizedKeyFrag {
     const kFrag = KeyFrag.fromBytes(verifiedKFrag.toBytes());
+    const expirationEpoch = Math.floor(expiration.getTime() / 1000);
     const signature = publisherSigner.sign(
-      new Uint8Array([...hrac.toBytes(), ...kFrag.toBytes()])
+      new Uint8Array([
+        ...hrac.toBytes(),
+        ...kFrag.toBytes(),
+        ...numberToBytes(
+          expirationEpoch,
+          AuthorizedKeyFrag.EXPIRATION_SIZE_BYTES
+        ),
+      ])
     );
-    return new AuthorizedKeyFrag(hrac, signature, kFrag);
+    return new AuthorizedKeyFrag(hrac, signature, kFrag, expirationEpoch);
   }
 
   private get header(): Uint8Array {
@@ -293,6 +309,10 @@ export class AuthorizedKeyFrag implements Versioned {
       ...this.header,
       ...this.signature.toBytes(),
       ...this.kFrag.toBytes(),
+      ...numberToBytes(
+        this.expiration,
+        AuthorizedKeyFrag.EXPIRATION_SIZE_BYTES
+      ),
     ]);
   }
 }

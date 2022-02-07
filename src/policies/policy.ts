@@ -154,7 +154,8 @@ export class BlockchainPolicy {
       ursulas,
       this.verifiedKFrags,
       this.threshold,
-      this.delegatingKey
+      this.delegatingKey,
+      this.expiration
     );
     const encryptedTreasureMap = await this.encryptTreasureMap(treasureMap);
     const revocationKit = new RevocationKit(treasureMap, this.publisher.signer);
