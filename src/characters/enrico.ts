@@ -1,6 +1,33 @@
-import { MessageKit, PublicKey, SecretKey } from '@nucypher/nucypher-core';
+import { PublicKey, SecretKey } from '@nucypher/nucypher-core';
 
+import { MessageKit } from '../core';
 import { toBytes } from '../utils';
+
+const accessControlConditions = [
+  {
+    contractAddress: "",
+    standardContractType: "timestamp",
+    chain: "ethereum",
+    method: "eth_getBlockByNumber",
+    parameters: ["latest"],
+    returnValueTest: {
+      comparator: ">=",
+      value: "1651276942"
+    },
+  },
+  {operator: "or"},
+  {
+    contractAddress: "",
+    standardContractType: "timestamp",
+    chain: "ethereum",
+    method: "eth_getBlockByNumber",
+    parameters: ["latest"],
+    returnValueTest: {
+      comparator: "<=",
+      value: "1651276942"
+    },
+  },
+];
 
 export class Enrico {
   public readonly policyEncryptingKey: PublicKey;
@@ -13,6 +40,7 @@ export class Enrico {
 
   public encryptMessage(plaintext: Uint8Array | string): MessageKit {
     return new MessageKit(
+      accessControlConditions,
       this.policyEncryptingKey,
       plaintext instanceof Uint8Array ? plaintext : toBytes(plaintext)
     );
