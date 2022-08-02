@@ -44,7 +44,7 @@ export const mockAlice = (aliceKey = 'fake-secret-key-32-bytes-alice-x') => {
   return Alice.fromSecretKey(
     mockConfig,
     secretKey,
-    provider as ethers.providers.Web3Provider,
+    provider,
   );
 };
 
@@ -52,7 +52,7 @@ export const mockWeb3Provider = (
   secretKeyBytes: Uint8Array,
   blockNumber?: number,
   blockTimestamp?: number,
-): Partial<ethers.providers.Web3Provider> => {
+): ethers.providers.Web3Provider => {
   const block = { timestamp: blockTimestamp ?? 1000 };
   const provider = {
     getBlockNumber: () => Promise.resolve(blockNumber ?? 1000),
@@ -63,12 +63,13 @@ export const mockWeb3Provider = (
   const fakeSignerWithProvider = {
     ...new Wallet(secretKeyBytes),
     provider,
-  };
-  return {
+  } as unknown as ethers.providers.JsonRpcSigner;
+  const fakeProvider = {
     ...provider,
     getSigner: () =>
-      fakeSignerWithProvider as unknown as ethers.providers.JsonRpcSigner,
-  };
+      fakeSignerWithProvider,
+  } as unknown as ethers.providers.Web3Provider;
+  return fakeProvider;
 };
 
 export const mockUrsulas = (): Ursula[] => {

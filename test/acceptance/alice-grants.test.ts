@@ -1,6 +1,6 @@
 import { CapsuleFrag, EncryptedTreasureMap, PublicKey, VerifiedKeyFrag } from '@nucypher/nucypher-core';
 
-import { BlockchainPolicyParameters, EnactedPolicy, Enrico, MessageKit } from '../../src';
+import { EnactedPolicy, Enrico, MessageKit } from '../../src';
 import { Ursula } from '../../src/characters/porter';
 import { ChecksumAddress } from '../../src/types';
 import { toBytes } from '../../src/utils';
@@ -50,7 +50,7 @@ describe('story: alice shares message with bob through policy', () => {
 
     const alice = mockAlice();
     const bob = mockRemoteBob();
-    const policyParams: BlockchainPolicyParameters = {
+    const policyParams = {
       bob,
       label,
       threshold,
@@ -98,7 +98,7 @@ describe('story: alice shares message with bob through policy', () => {
     const retrievedMessage = await bob.retrieveAndDecrypt(
       policyEncryptingKey,
       aliceVerifyingKey,
-      [ encryptedMessage ],
+      [encryptedMessage],
       encryptedTreasureMap,
     );
     const bobPlaintext = fromBytes(retrievedMessage[0]);
